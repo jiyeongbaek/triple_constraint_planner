@@ -1,0 +1,12 @@
+<launch>
+    <param name="robot_description" command="$(find xacro)/xacro --inorder '$(find social_env_description)/robots/social_env.urdf.xacro'" />
+    <param name="single_robot_description" command="$(find xacro)/xacro.py '$(find franka_description)/robots/panda_arm_hand.urdf.xacro'" />
+    <include file="$(find social_moveit_config)/launch/planning_context.launch"/>
+    <arg name="debug" default="false" />
+    <node name="triple_constraint_planner" pkg="triple_constraint_planner" type="triple_constraint_planner" output="screen" launch-prefix="gdb -ex run --args" if="$(arg debug)" /> 
+    <node name="triple_constraint_planner" pkg="triple_constraint_planner" type="triple_constraint_planner" output="screen" if="$(eval debug == false)" /> 
+
+</launch>
+
+<!-- launch-prefix="gdb -ex run -args " -->
+
