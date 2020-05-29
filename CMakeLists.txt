@@ -69,7 +69,6 @@ set(SOURCES
   src/planner/newPRM.cpp
   src/planner/newRRTConnect.cpp
   src/planner/newRRT.cpp
-  # src/planner/NoRandomSampleSpace.cpp
   src/planner/GoalVisitor.hpp
   src/kinematics/panda_model_updater.cpp)
 

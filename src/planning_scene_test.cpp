@@ -135,12 +135,12 @@ int main(int argc, char **argv)
     // visual_tools.publishRobotState(planning_scene->getCurrentStateNonConst());
     visual_tools.trigger();
     ros::Publisher planning_scene_diff_publisher = node_handle.advertise<moveit_msgs::PlanningScene>("planning_scene", 1);
-
-    // goal <<-1.03481, 0.917356, -0.668407, -0.117773, 1.83023, 1.42452, 2.56145, -0.275923, 1.26458, 1.58845, -0.414796, -2.76651, 3.37671, 2.51461;
-    // robot_state::RobotState robot_state = planning_scene->getCurrentState();
-    // robot_state.setJointGroupPositions(grp.planning_group, goal);
-    // robot_state.update();
-    // planning_scene->setCurrentState(robot_state);
+    Eigen::VectorXd goal(21);
+    goal <<  -1.1122,  0.5929 , 0.688417,  -2.02776, 2.43751, 2.28549, 2.41511, -2.3503 , 0.830149, 2.81164 , -2.22521 -0.179097, 1.46527, 1.16277, 1.57153, -1.7628  -1.74788  -2.21385, 2.85159, 2.47757 , 0.852304;
+    robot_state::RobotState robot_state = planning_scene->getCurrentState();
+    robot_state.setJointGroupPositions(grp.planning_group, goal);
+    robot_state.update();
+    planning_scene->setCurrentState(robot_state);
     moveit_msgs::PlanningScene moveit_scene2;
     planning_scene->getPlanningSceneMsg(moveit_scene2);
 

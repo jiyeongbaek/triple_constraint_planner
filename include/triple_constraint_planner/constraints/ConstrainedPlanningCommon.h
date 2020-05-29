@@ -104,7 +104,7 @@ public:
     void setConstrainedOptions()
     {
         // rrt 되는거
-        c_opt.delta = 0.3; //0.075
+        c_opt.delta = 0.15; //0.075
 
         c_opt.lambda = 5.0;
         c_opt.tolerance1 = 0.002; //0.001
@@ -123,8 +123,10 @@ public:
     void setStartAndGoalStates()
     {
         ob::ScopedState<> sstart(css);
+        ob::ScopedState<> sgoal(css);
         sstart->as<ob::ConstrainedStateSpace::StateType>()->copy(grp.start);
-        ss->setStartState(sstart);
+        sgoal->as<ob::ConstrainedStateSpace::StateType>()->copy(grp.goal);
+        ss->setStartAndGoalStates(sstart, sgoal);
     }
 
     ob::PlannerStatus solveOnce(bool goalsampling, const std::string &name = "projection")
@@ -134,20 +136,20 @@ public:
             return sampleIKgoal(gls, result);
         };
         std::shared_ptr<ompl::base::jy_GoalLazySamples> goal;
-
+        goal = std::make_shared<ompl::base::jy_GoalLazySamples>(ss->getSpaceInformation(), samplingFunction, false);
+        
         if (goalsampling)
         {
-            goal = std::make_shared<ompl::base::jy_GoalLazySamples>(ss->getSpaceInformation(), samplingFunction, false);
             ob::State *first_goal = csi->allocState();
             if (sampleIKgoal(first_goal))
             {
                 csi->printState(first_goal);
                 goal->addState(first_goal);
             }
-            
-            // goal->startSampling();
-            ss->setGoal(goal);
+            goal->startSampling();
         }
+
+        ss->setGoal(goal);
 
         ob::PlannerStatus stat = ss->solve(c_opt.time);
         dumpGraph("test");
@@ -193,10 +195,12 @@ public:
 
     bool sampleIKgoal(const ob::jy_GoalLazySamples *gls, ob::State *result)
     {
+        if (gls->hasStates())
+            std::this_thread::sleep_for(std::chrono::seconds(3));
         int stefan_tries = 500;
         std::shared_ptr<panda_ik> panda_ik_solver = std::make_shared<panda_ik>();
         Affine3d base_obj = grp.base_obj;
-        
+
         while (--stefan_tries)
         {
             Affine3d target_1 = base_1st.inverse() * base_obj * obj_grasp1;
@@ -213,10 +217,7 @@ public:
                 success3 = panda_ik_solver->randomSolve(target_3, sol.segment<7>(14));
                 if (success1 && success2 && success3)
                 {
-                    if (gls->getSpaceInformation()->isValid(result))
-                    {
-                        return true;
-                    }
+                    return true;
                 }
                 else
                     break;
@@ -229,7 +230,7 @@ public:
     {
         std::shared_ptr<panda_ik> panda_ik_solver = std::make_shared<panda_ik>();
         Affine3d base_obj = grp.base_obj;
-        
+
         Affine3d target_1 = base_1st.inverse() * base_obj * obj_grasp1;
         Affine3d target_2 = base_2nd.inverse() * base_obj * obj_grasp2;
         Affine3d target_3 = base_3rd.inverse() * base_obj * obj_grasp3;
@@ -239,13 +240,14 @@ public:
         success1 = panda_ik_solver->solve(grp.start.segment<7>(0), target_1, sol.segment<7>(0));
         success2 = panda_ik_solver->solve(grp.start.segment<7>(7), target_2, sol.segment<7>(7));
         success3 = panda_ik_solver->solve(grp.start.segment<7>(14), target_3, sol.segment<7>(14));
-        
+
+        // success1 = panda_ik_solver->randomSolve(target_1, sol.segment<7>(0));
+        // success2 = panda_ik_solver->randomSolve(target_2, sol.segment<7>(7));
+        // success3 = panda_ik_solver->randomSolve(target_3, sol.segment<7>(14));
+
         if (success1 && success2 && success3)
         {
-            if (csi->isValid(result))
-            {
-                return true;
-            }
+            return true;
         }
 
         return false;
@@ -344,6 +346,7 @@ public:
     struct ConstrainedOptions c_opt;
     Affine3d obj_grasp1, obj_grasp2, obj_grasp3, base_1st, base_2nd, base_3rd;
     grasping_point grp;
+    std::shared_ptr<ob::SE3StateSpace> obj_space_;
 
 protected:
     ompl::RNG rng_;

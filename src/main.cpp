@@ -102,6 +102,7 @@ bool plannedPath()
     ConstrainedProblem cp(ss, constraint); // define a simple problem to solve this constrained space
     cp.setConstrainedOptions();
     cp.ss->setStateValidityChecker(std::make_shared<KinematicChainValidityChecker>(cp.csi));
+
     cp.setStartAndGoalStates();
 
     enum PLANNER_TYPE planner = newPRM;
@@ -112,7 +113,7 @@ bool plannedPath()
 
 int main(int argc, char **argv)
 {
-    std::string name_ = "dual_arm_constraint_planning";
+    std::string name_ = "tripple_constraint_planning";
     ros::init(argc, argv, name_);
     ros::AsyncSpinner spinner(1);
     spinner.start();

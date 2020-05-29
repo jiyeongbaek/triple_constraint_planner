@@ -116,7 +116,7 @@ namespace ompl
                growRoadmap() and expandRoadmap(),
                 maintaining a 2:1 ratio for growing/expansion of roadmap) */
 
-            void constructRoadmap(const base::PlannerTerminationCondition &ptc, base::State *mid, double distance);
+            void constructRoadmap(const base::PlannerTerminationCondition &ptc);
             
             /** If the user desires, the roadmap can be
                 improved for the given time (seconds). The solve()
@@ -126,7 +126,7 @@ namespace ompl
             /** \brief If the user desires, the roadmap can be
                 improved until a given condition is true. The solve()
                 method will also improve the roadmap, as needed.*/
-            void growRoadmap(const base::PlannerTerminationCondition &ptc, base::State *mid, double distance);
+            void growRoadmap(const base::PlannerTerminationCondition &ptc);
 
             /** \brief Attempt to connect disjoint components in the roadmap
                 using random bouncing motions (the newPRM expansion step) for the
@@ -209,8 +209,7 @@ namespace ompl
             /** \brief Randomly sample the state space, add and connect milestones
                  in the roadmap. Stop this process when the termination condition
                  \e ptc returns true.  Use \e workState as temporary memory. */
-            void growRoadmap(const base::PlannerTerminationCondition &ptc, base::State *workState, base::State *mid, double distance);
-            void growRoadmap(const base::PlannerTerminationCondition &ptc, base::State *workState, base::State *start_state, base::State *goal_state);
+            void growRoadmap(const base::PlannerTerminationCondition &ptc, base::State *workState);
 
             /** \brief Attempt to connect disjoint components in the
                 roadmap using random bounding motions (the newPRM

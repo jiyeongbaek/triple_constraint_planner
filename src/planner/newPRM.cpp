@@ -21,7 +21,7 @@ namespace ompl
     {
         /** \brief The number of steps to take for a random bounce
             motion generated as part of the expansion step of newPRM. */
-        static const unsigned int MAX_RANDOM_BOUNCE_STEPS = 5;
+        static const unsigned int MAX_RANDOM_BOUNCE_STEPS = 8; //default : 5
 
         /** \brief The time in seconds for a single roadmap building operation (dt)*/
         static const double ROADMAP_BUILD_TIME = 1.;
@@ -261,7 +261,7 @@ void ompl::geometric::newPRM::growRoadmap(double growTime)
     growRoadmap(base::timedPlannerTerminationCondition(growTime));
 }
 
-void ompl::geometric::newPRM::growRoadmap(const base::PlannerTerminationCondition &ptc, base::State *mid, double distance)
+void ompl::geometric::newPRM::growRoadmap(const base::PlannerTerminationCondition &ptc)
 {
     if (!isSetup())
         setup();
@@ -269,11 +269,11 @@ void ompl::geometric::newPRM::growRoadmap(const base::PlannerTerminationConditio
         sampler_ = si_->allocValidStateSampler();
 
     base::State *workState = si_->allocState();
-    growRoadmap(ptc, workState, mid, distance);
+    growRoadmap(ptc, workState);
     si_->freeState(workState);
 }
 
-void ompl::geometric::newPRM::growRoadmap(const base::PlannerTerminationCondition &ptc, base::State *workState, base::State *mid, double distance)
+void ompl::geometric::newPRM::growRoadmap(const base::PlannerTerminationCondition &ptc, base::State *workState)
 {
     /* grow roadmap in the regular fashion -- sample valid states, add them to the roadmap, add valid connections */
     while (!ptc)
@@ -288,7 +288,6 @@ void ompl::geometric::newPRM::growRoadmap(const base::PlannerTerminationConditio
             {
                 found = sampler_->sample(workState);
                 attempts++;
-
             } while (attempts < magic::FIND_VALID_STATE_ATTEMPTS_WITHOUT_TERMINATION_CHECK && !found);
         }
         // add it as a milestone
@@ -307,7 +306,9 @@ void ompl::geometric::newPRM::checkForSolution(const base::PlannerTerminationCon
         {
             const base::State *st = pis_.nextGoal();
             if (st != nullptr)
+            {
                 goalM_.push_back(addMilestone(si_->cloneState(st)));
+            }
         }
     
        // Check for any new start states
@@ -317,19 +318,11 @@ void ompl::geometric::newPRM::checkForSolution(const base::PlannerTerminationCon
         //     if (st2 != nullptr)
         //         startM_.push_back(addMilestone(si_->cloneState(st2)));
         // }
-    
-        // base::State *new_goal = si_->allocState();
-        // if (sampleIKgoal(new_goal))
-        // {
-        //     goalM_.push_back(addMilestone(si_->cloneState(new_goal)));
-        //     // OMPL_INFORM("ADD NEW GOAL STATE");
-        // }
 
-        // Check for a solution
         addedNewSolution_ = maybeConstructSolution(startM_, goalM_, solution);
         // Sleep for 1ms
         if (!addedNewSolution_)
-            std::this_thread::sleep_for(std::chrono::seconds(1));
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 }
 
@@ -438,12 +431,12 @@ ompl::base::PlannerStatus ompl::geometric::newPRM::solve(const base::PlannerTerm
         return ptc || addedNewSolution();
     });
     base::State *mid = si_->allocState();
-    constructRoadmap(ptcOrSolutionFound, mid, 0.0);
+    constructRoadmap(ptcOrSolutionFound);
     slnThread.join(); //// Ensure slnThread is ceased before exiting solve
     
     OMPL_INFORM("%s: Created %u states", getName().c_str(), boost::num_vertices(g_) - nrStartStates);
-    std::cout << "start : " << startM_.size() << std::endl;
-    std::cout << "goal : " << goalM_.size() << std::endl;
+    std::cout << "NEW goal : " << goalM_.size()-1 << std::endl;
+
     // foreach (Vertex v, boost::vertices(g_))
     //     si_->printState(stateProperty_[v]);
 
@@ -479,7 +472,7 @@ ompl::base::PlannerStatus ompl::geometric::newPRM::solve(const base::PlannerTerm
     return sol ? base::PlannerStatus::EXACT_SOLUTION : base::PlannerStatus::TIMEOUT;
 }
 
-void ompl::geometric::newPRM::constructRoadmap(const base::PlannerTerminationCondition &ptc, base::State *mid, double distance)
+void ompl::geometric::newPRM::constructRoadmap(const base::PlannerTerminationCondition &ptc)
 {
     if (!isSetup())
         setup();
@@ -499,12 +492,14 @@ void ompl::geometric::newPRM::constructRoadmap(const base::PlannerTerminationCon
         // call growRoadmap() twice as long for every call of expandRoadmap()
         if (grow)
         {
+            std::cout << "grow roadmap" << std::endl;
             growRoadmap(base::plannerOrTerminationCondition(
                             ptc, base::timedPlannerTerminationCondition(2.0 * magic::ROADMAP_BUILD_TIME)),
-                        xstates[0], mid, distance);
+                        xstates[0]);
         }
         else
         {
+            std::cout << "expand roadmap" << std::endl;
             expandRoadmap(base::plannerOrTerminationCondition(
                               ptc, base::timedPlannerTerminationCondition(magic::ROADMAP_BUILD_TIME)),
                           xstates);
@@ -725,33 +720,6 @@ ompl::base::Cost ompl::geometric::newPRM::costHeuristic(Vertex u, Vertex v) cons
     // return opt_->motionCostHeuristic(stateProperty_[u], stateProperty_[v]);
 }
 
-// bool ompl::geometric::newPRM::isSatisfied(const ob::State *st) const
-// {
-//     auto *s = st->as<ompl::base::ConstrainedStateSpace::StateType>()->getState()->as<KinematicChainSpace::StateType>();
-
-//     Eigen::Matrix<double, 7, 1> joint;
-//     for (int i = 0; i < 7; i++)
-//         joint[i] = s->values[i];
-//     Eigen::Affine3d serve_Sgrasp = panda_arm->getTransform(joint);
-
-//     Eigen::Affine3d base_obj = grp.base_serve * serve_Sgrasp * grp.Sgrp_obj;
-//     Eigen::Vector3d rpy = base_obj.linear().eulerAngles(0, 1, 2);
-
-//     // double yaw = rpy[0];
-//     // double pitch = rpy[1]; //0
-//     double roll = rpy[0]; // 90
-//     double distance = abs(rad2deg(roll) - 90);
-
-//     double yaw = abs(rad2deg(rpy[2]));
-//     std::cout << distance << " " << yaw << std::endl;
-//     if (distance < 5) // && yaw < 20)
-//     {
-//         std::cout << rpy.transpose() << std::endl;
-//         return true;
-//     }
-
-//     return false;
-// }
 
 void ompl::geometric::newPRM::updateStart(const base::PlannerTerminationCondition &ptc)
 {

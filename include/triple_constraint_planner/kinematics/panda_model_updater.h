@@ -65,11 +65,15 @@ public:
     bool solve(VectorXd start, Affine3d target, Eigen::Ref<Eigen::VectorXd> solution);
     Eigen::VectorXd getRandomConfig();
     bool randomSolve(Affine3d target, Eigen::Ref<Eigen::VectorXd> solution);
+    
+    Eigen::Affine3d fk(const Eigen::Ref<const Eigen::VectorXd> &q);
+    Eigen::Affine3d random_fk();
 
 private:
     std::string chain_start{"panda_link0"};
     std::string chain_end{"panda_hand"};
     TRAC_IK::TRAC_IK tracik_solver;
+    std::unique_ptr<KDL::ChainFkSolverPos_recursive> fk_solver;
     KDL::Chain chain;
     Eigen::VectorXd lb_, ub_;
     Eigen::VectorXd length;

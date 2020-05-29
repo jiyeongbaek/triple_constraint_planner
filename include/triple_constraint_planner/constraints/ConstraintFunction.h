@@ -30,12 +30,10 @@ public:
     KinematicChainConstraint(unsigned int links) : ompl::base::Constraint(21, 4)
     {
         grasping_point grp;
-         for (int i = 0; i < 7; i++)
-        {
-            qinit_1st[i] = grp.start[i];
-            qinit_2nd[i] = grp.start[i + 7];
-            qinit_3rd[i] = grp.start[i + 14];
-        }
+
+        qinit_1st = grp.start.segment<7>(0);
+        qinit_2nd = grp.start.segment<7>(7);
+        qinit_3rd = grp.start.segment<7>(14);
 
         base_1st = grp.base_1st;
         base_2nd = grp.base_2nd;
@@ -51,11 +49,11 @@ public:
         init1 = init_serve1.inverse() * init_main1;
 
         /* second closed chain */
-        init_serve2 = base_2nd * panda_arm->getTransform(qinit_2nd) * offset_R;
+        init_serve2 = base_2nd * panda_arm->getTransform(qinit_2nd);
         init_main2 = base_3rd * panda_arm->getTransform(qinit_3rd);
         init2 = init_serve2.inverse() * init_main2;
 
-        maxIterations = 150;
+        maxIterations = 250;
     }
 
     bool project(Eigen::Ref<Eigen::VectorXd> x) const override
@@ -73,14 +71,10 @@ public:
                     && iter++ < maxIterations)
         {
             jacobian(x, j);
-            x -= 0.20 * j.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(f);
-            OMPL_INFORM("ITER : %d  / norm1 : %f  / norm2 : %f  / norm1 : %f  / norm2 : %f  ", iter, f[0], f[1], f[2], f[3]);
+            x -= 0.30 * j.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(f);
             function(x, f);
         }
-        // cout << "F : " << f.transpose() << endl;
-        // cout << "f tail : " << f.tail(3).transpose() << endl;
-        // cout << f.tail(3).squaredNorm() << endl;
-        // cout << "x          : " << x.transpose() << endl;
+        
         if ((norm1 < tolerance1_) && (norm2 < tolerance2_) && (norm3 < tolerance1_) && (norm4 < tolerance2_))
         {
             // OMPL_INFORM("ITER : %d  / norm1 : %f  / norm2 : %f  "  , iter, norm1, norm2);
@@ -93,13 +87,14 @@ public:
 
     void function(const Eigen::Ref<const Eigen::VectorXd> &x, Eigen::Ref<Eigen::VectorXd> out) const override
     {
-        Eigen::VectorXd &&temp1 = x.segment(0, 7);
-        Eigen::VectorXd &&temp2 = x.segment(7, 7);
-        Eigen::VectorXd &&temp3 = x.segment(14, 7);
+        // Eigen::VectorXd &&temp1 = x.segment<7>(0);
+        // Eigen::VectorXd &&temp2 = x.segment<7>(7);
+        // Eigen::VectorXd &&temp3 = x.segment<7>(14);
+        // std::cout << "temp : " << temp1.transpose() << " " << temp2.transpose() << " " << temp3.transpose() << std::endl;
 
         /* first closed chain */
-        Eigen::Affine3d lt1 = base_1st * panda_arm->getTransform(temp1) * offset_R;
-        Eigen::Affine3d rt1 = base_3rd * panda_arm->getTransform(temp3);
+        Eigen::Affine3d lt1 = base_1st * panda_arm->getTransform(x.segment<7>(0)) * offset_R;
+        Eigen::Affine3d rt1 = base_3rd * panda_arm->getTransform(x.segment<7>(14));
         Eigen::Affine3d result1 = lt1.inverse() * rt1;
 
         double p1 = (result1.translation() - init1.translation()).norm();
@@ -108,8 +103,8 @@ public:
         double r1 = cur_q1.angularDistance(ori_q1);
 
         /* second closed chain */
-        Eigen::Affine3d lt2 = base_2nd * panda_arm->getTransform(temp2) * offset_R;
-        Eigen::Affine3d rt2 = base_3rd * panda_arm->getTransform(temp3);
+        Eigen::Affine3d lt2 = base_2nd * panda_arm->getTransform(x.segment<7>(7));
+        Eigen::Affine3d rt2 = base_3rd * panda_arm->getTransform(x.segment<7>(14));
         Eigen::Affine3d result2 = lt2.inverse() * rt2;
 
         double p2 = (result2.translation() - init2.translation()).norm();
@@ -124,79 +119,6 @@ public:
        
     }
 
-    /* this is very computationally intensive, and providing an analytic derivative is preferred. We provide a simple scrip */
-    // void jacobian(const Eigen::Ref<const Eigen::VectorXd> &x, Eigen::Ref<Eigen::MatrixXd> out) const override
-    // {
-    //     Eigen::VectorXd &&q_temp = x;
-    //     Eigen::Affine3d lt = base_1st * panda_arm->getTransform(q_temp.segment(0, 7)) * offset_R;
-    //     Eigen::Affine3d rt = base_3rd * panda_arm->getTransform(q_temp.segment(7, 7));
-    //     Eigen::Affine3d result = lt.inverse() * rt;
-    //     Eigen::Matrix3d r_diff = init.linear().transpose() * result.linear();
-
-    //     Eigen::Vector3d rpy = result.linear().eulerAngles(0, 1, 2);
-    //     // rpy(0) = atan2(result(2, 1), result(2, 2));
-    //     // rpy(1) = -asin(result(2, 0));
-    //     // rpy(2) = atan2(result(1, 0), result(0, 0));
-        
-    //     // E_rpy(0,0) = cos(rpy(2))/cos(rpy(1));
-    //     // E_rpy(0,1) = sin(rpy(2))/cos(rpy(1));
-    //     // E_rpy(0,2) = 0.0;
-
-    //     // E_rpy(1,0) = sin(rpy(2));
-    //     // E_rpy(1,1) = cos(rpy(2));
-    //     // E_rpy(1,2) = 0.0;
-
-    //     // E_rpy(2,0) = -cos(rpy(2))*sin(rpy(1))/cos(rpy(1));
-    //     // E_rpy(2,1) = sin(rpy(2))*sin(rpy(1))/cos(rpy(1));
-    //     // E_rpy(2,2) = 1.0;
-
-    //     Eigen::MatrixXd offset_R2 = Eigen::MatrixXd::Zero(6, 6);
-    //     offset_R2.block<3, 3>(0, 0) = offset_R.linear();
-    //     offset_R2.block<3, 3>(3, 3) = offset_R.linear();
-        
-    //     Eigen::MatrixXd jaco_l_temp = offset_R2 * panda_arm->getJacobian(q_temp.segment(0, 7));
-    //     Eigen::MatrixXd jaco_r_temp = panda_arm->getJacobian(q_temp.segment(7, 7));
-    //     Eigen::Matrix<double, 6, 7> jaco_l, jaco_r;
-    //     jaco_l.topRows(3) = jaco_l_temp.bottomRows(3);
-    //     jaco_l.bottomRows(3) = jaco_l_temp.topRows(3);
-        
-    //     jaco_r.topRows(3) = jaco_r_temp.bottomRows(3);
-    //     jaco_r.bottomRows(3) = jaco_r_temp.topRows(3);
-        
-    //     Eigen::MatrixXd omega_1st = Eigen::MatrixXd::Zero(6, 6);
-    //     Eigen::MatrixXd omega_3rd = Eigen::MatrixXd::Zero(6, 6);
-    //     omega_1st.block<3, 3>(0, 0) = lt.linear().inverse();
-    //     omega_1st.block<3, 3>(3, 3) = lt.linear().inverse();
-    //     omega_3rd.block<3, 3>(0, 0) = result.linear() * (rt.linear().inverse());
-    //     omega_3rd.block<3, 3>(3, 3) = result.linear() * (rt.linear().inverse());
-    //     // std::cout << result.linear() << std::endl;
-        
-    //     Eigen::MatrixXd wrench = Eigen::MatrixXd::Zero(6, 6);
-    //     wrench.block<3, 3>(0, 0) = Eigen::Matrix3d::Identity();
-    //     wrench.block<3, 3>(3, 3) = Eigen::Matrix3d::Identity();
-    //     wrench.block<3, 3>(0, 3) = -skew_symmetric(result.translation());
-        
-        
-    //     std::cout << "wrench" << std::endl;
-    //     std::cout << wrench << std::endl;
-    //     Eigen::MatrixXd jaco(6, 14);
-    //     jaco.block<6, 7>(0, 0) = -wrench * omega_1st * jaco_l;
-    //     jaco.block<6, 7>(0, 7) = omega_3rd * jaco_r;
-
-    //     Eigen::MatrixXd e_matrix = Eigen::MatrixXd::Zero(6, 6);
-    //     e_matrix.block<3, 3>(0, 0) = Eigen::Matrix3d::Identity();
-    //     Eigen::Matrix3d e_R;
-    //     e_R << 1, sin(rpy[0]) * sin(rpy[1]) / cos(rpy[1]), -cos(rpy[0])*sin(rpy[1])/cos(rpy[1]), 
-    //             0, cos(rpy[0]), sin(rpy[0]),
-    //             0, -sin(rpy[0]) / cos(rpy[1]) , cos(rpy[0]) / cos(rpy[1]);
-    //     e_matrix.block<3, 3>(3, 3) = e_R ;
-
-    //     // out = e_matrix * jaco;
-    //     std::cout << result.linear() << std::endl;
-    //     std::cout << std::endl;
-    //     out = jaco;
-        
-    // }
 
     void setTolerance(const double tolerance1, const double tolerance2)
     {
@@ -213,19 +135,6 @@ public:
         Eigen::VectorXd f(getCoDimension());
         function(x, f);
         return f.allFinite() && f[0] <= tolerance1_ && f[1] <= tolerance2_ && f[2] <= tolerance1_ && f[3] <= tolerance2_;
-    }
-
-    Eigen::Matrix3d skew_symmetric(Eigen::Vector3d x) const
-    {
-        Eigen::Matrix3d result;
-        result.setZero();
-        result(0, 1) = -x[2];
-        result(0, 2) = x[1];
-        result(1, 0) = x[2];
-        result(1, 2) = -x[0];
-        result(2, 0) = -x[1];
-        result(2, 1) = x[0];
-        return result;
     }
 
 protected:

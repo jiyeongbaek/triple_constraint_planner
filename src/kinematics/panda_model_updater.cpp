@@ -127,6 +127,65 @@ Matrix<double, 7, 1> FrankaModelUpdater::getGravity(const Vector7d &q)
   return g_temp;
 }
 
+Eigen::Matrix3d getEigenRotation(const KDL::Rotation & r)
+{
+  Eigen::Matrix3d matrix;
+  for (int i=0 ;i<9; i++)
+  {
+     matrix(i/3, i%3) = r.data[i];
+  }
+  return matrix;
+}
+
+Eigen::Vector3d getEigenVector(const KDL::Vector& v)
+{
+  Eigen::Vector3d vector;
+  for (int i=0; i<3; i++)
+  {
+    vector(i) = v(i);
+  }
+  return vector;
+}
+
+Eigen::Affine3d getEigenFrame(const KDL::Frame & frame)
+{
+  Eigen::Affine3d transform;
+  transform.translation() = getEigenVector(frame.p);
+  transform.linear() = getEigenRotation(frame.M);
+  return transform;
+}
+
+KDL::Rotation getKDLRotation(const Eigen::Matrix3d & matrix)
+{
+  KDL::Rotation r;
+  for (int i=0 ;i<9; i++)
+  {
+    r.data[i] = matrix(i/3, i%3);
+  }
+  return r;
+}
+
+KDL::Vector getKDLVector(const Eigen::Vector3d& vector)
+{
+  KDL::Vector v;
+  for (int i=0; i<3; i++)
+  {
+    v(i) = vector(i);
+  }
+  return v;
+}
+
+
+KDL::Frame getKDLFrame(const Eigen::Affine3d & transform)
+{
+  KDL::Frame frame;
+  frame.p = getKDLVector(transform.translation());
+  frame.M = getKDLRotation(transform.linear());
+  return frame;
+}
+
+
+
 panda_ik::panda_ik() : tracik_solver(chain_start, chain_end, "/single_robot_description", TRAC_IK::SolveType::Manip1)
 {
   KDL::JntArray ll, ul; //lower joint limits, upper joint limits
@@ -157,6 +216,8 @@ panda_ik::panda_ik() : tracik_solver(chain_start, chain_end, "/single_robot_desc
   {
     nominal(j) = (ll(j) + ul(j)) / 2.0;
   }
+
+  fk_solver.reset(new KDL::ChainFkSolverPos_recursive(chain));
 }
 
 Eigen::VectorXd panda_ik::getRandomConfig()
@@ -171,27 +232,11 @@ bool panda_ik::solve(VectorXd start, Affine3d target, Eigen::Ref<Eigen::VectorXd
     nominal(j) = start[j];
 
   KDL::JntArray result;
-  KDL::Frame end_effector_pose;
-  for (size_t i = 0; i < 3; i++)
-    end_effector_pose.p(i) = target.translation()[i];
-
-  Matrix3d Rot_d = target.linear();
-  KDL::Rotation A;
-  A.data[0] = Rot_d(0, 0);
-  A.data[1] = Rot_d(0, 1);
-  A.data[2] = Rot_d(0, 2);
-  A.data[3] = Rot_d(1, 0);
-  A.data[4] = Rot_d(1, 1);
-  A.data[5] = Rot_d(1, 2);
-  A.data[6] = Rot_d(2, 0);
-  A.data[7] = Rot_d(2, 1);
-  A.data[8] = Rot_d(2, 2);
-  end_effector_pose.M = A;
-
+  result.resize(7);
+  KDL::Frame end_effector_pose = getKDLFrame(target);
   if (tracik_solver.CartToJnt(nominal, end_effector_pose, result) >= 0)
   {
     solution = result.data;
-    // std::cout << "solve" << std::endl;
     return true;
   }
   return false;
@@ -201,3 +246,21 @@ bool panda_ik::randomSolve(Affine3d target, Eigen::Ref<Eigen::VectorXd> solution
 {
   return solve(getRandomConfig(), target, solution);
 }
+
+Eigen::Affine3d panda_ik::fk(const Eigen::Ref<const Eigen::VectorXd> &q)
+{
+  KDL::JntArray jarr_q;
+  KDL::Frame frame;
+  
+  jarr_q.data = q;
+  fk_solver->JntToCart(jarr_q, frame);
+
+  return getEigenFrame(frame);
+}
+
+Eigen::Affine3d panda_ik::random_fk()
+{
+  return fk(getRandomConfig());
+}
+
+

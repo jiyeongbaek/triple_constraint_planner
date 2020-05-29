@@ -82,7 +82,7 @@ void ompl::base::jy_GoalLazySamples::goalSamplingThread()
             ++samplingAttempts_;
             if (si_->satisfiesBounds(s.get()) && si_->isValid(s.get()))
             {
-                OMPL_DEBUG("Adding goal state");
+                // OMPL_DEBUG("Adding goal state");
                 addStateIfDifferent(s.get(), minDist_);
             }
             else

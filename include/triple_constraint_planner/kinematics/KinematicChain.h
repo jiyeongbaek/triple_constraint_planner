@@ -260,7 +260,7 @@ protected:
         // return !collision;
 
         
-        collision_detection::CollisionResult::ContactMap::const_iterator it;
+        // collision_detection::CollisionResult::ContactMap::const_iterator it;
         // for (it = res.contacts.begin(); it != res.contacts.end(); ++it)
         // {
         //     ROS_INFO("Contact between: %s and %s", it->first.first.c_str(), it->first.second.c_str());
