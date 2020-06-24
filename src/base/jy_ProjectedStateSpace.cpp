@@ -11,14 +11,14 @@ void jy_ProjectedStateSampler::sampleUniform(ob::State *state)
 {
     ob::WrapperStateSampler::sampleUniform(state);
     constraint_->project(state);
-    // space_->enforceBounds(state);
+    space_->enforceBounds(state);
 }
 
 void jy_ProjectedStateSampler::sampleUniformNear(ob::State *state, const ob::State *near, const double distance)
 {
     ob::WrapperStateSampler::sampleUniformNear(state, near, distance);
     constraint_->project(state);
-    // space_->enforceBounds(state);
+    space_->enforceBounds(state);
 }
 
 void jy_ProjectedStateSampler::sampleGaussian(ob::State *state, const ob::State *mean, const double stdDev)

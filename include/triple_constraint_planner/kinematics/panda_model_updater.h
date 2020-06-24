@@ -21,7 +21,7 @@ class FrankaModelUpdater
 public:
     FrankaModelUpdater();
     void PandaRBDLModel();
-    Affine3d getTransform(const Vector7d &q);
+    Isometry3d getTransform(const Vector7d &q);
     Matrix<double, 6, 7> getJacobian(const Vector7d &q);
     Matrix<double, 7, 7> getMassMatrix(const Vector7d &q);
     Matrix<double, 7, 1> getGravity(const Vector7d &q);
@@ -46,11 +46,11 @@ public:
     Eigen::Matrix<double, 6, 7> jacobian_;         //j
     Eigen::Matrix<double, 3, 1> position_;         //xp
     Eigen::Matrix<double, 3, 3> rotation_;         //xr
-    Eigen::Affine3d transform_;
+    Eigen::Isometry3d transform_;
     Eigen::Matrix<double, 6, 1> xd_; //xp_desired + xr_desired?
 
     Eigen::Matrix<double, 7, 1> initial_q_; ///< initial joint configuration for idle control
-    Eigen::Affine3d initial_transform_;     ///< initial transform for idle control
+    Eigen::Isometry3d initial_transform_;     ///< initial transform for idle control
     bool idle_controlled_{false};           ///< it indicates that this arm is under the idle control status. that is FrankaModelUpdater has valid initial transform and is using the transform.
     bool target_updated_{false};            ///< it is used to check whether any other action is on going excep the idle control
     // -- arm parameters
@@ -62,12 +62,12 @@ class panda_ik
 {
 public:
     panda_ik();
-    bool solve(VectorXd start, Affine3d target, Eigen::Ref<Eigen::VectorXd> solution);
+    bool solve(VectorXd start, Isometry3d target, Eigen::Ref<Eigen::VectorXd> solution);
     Eigen::VectorXd getRandomConfig();
-    bool randomSolve(Affine3d target, Eigen::Ref<Eigen::VectorXd> solution);
+    bool randomSolve(Isometry3d target, Eigen::Ref<Eigen::VectorXd> solution);
     
-    Eigen::Affine3d fk(const Eigen::Ref<const Eigen::VectorXd> &q);
-    Eigen::Affine3d random_fk();
+    Eigen::Isometry3d fk(const Eigen::Ref<const Eigen::VectorXd> &q);
+    Eigen::Isometry3d random_fk();
 
 private:
     std::string chain_start{"panda_link0"};

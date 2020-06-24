@@ -340,9 +340,10 @@ bool ompl::geometric::newPRM::maybeConstructSolution(const std::vector<Vertex> &
             graphMutex_.lock();
             bool same_component = sameComponent(start, goal);
             graphMutex_.unlock();
-
+            // std::cout << "same component" << std::endl;
             if (same_component && g->isStartGoalPairValid(stateProperty_[goal], stateProperty_[start]))
             {
+                // std::cout << "maybeconstructionsolution" << std::endl;
                 base::PathPtr p = constructSolution(start, goal);
                 if (p)
                 {
@@ -709,8 +710,8 @@ ompl::base::Cost ompl::geometric::newPRM::costHeuristic(Vertex u, Vertex v) cons
     Eigen::Map<Eigen::VectorXd> &prev = *u_->as<ob::ConstrainedStateSpace::StateType>();
     Eigen::Map<Eigen::VectorXd> &current = *u_->as<ob::ConstrainedStateSpace::StateType>();
 
-    Eigen::Affine3d u_trans = panda_arm->getTransform(prev.segment<7>(0));
-    Eigen::Affine3d v_trans = panda_arm->getTransform(current.segment<7>(0));
+    Eigen::Isometry3d u_trans = panda_arm->getTransform(prev.segment<7>(0));
+    Eigen::Isometry3d v_trans = panda_arm->getTransform(current.segment<7>(0));
     Eigen::Quaterniond u_quat(u_trans.linear());
     Eigen::Quaterniond v_quat(v_trans.linear());
     double d = (u_trans.translation() - v_trans.translation()).norm();

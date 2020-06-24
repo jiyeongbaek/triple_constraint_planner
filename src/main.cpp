@@ -20,7 +20,7 @@
 #include <ompl/geometric/planners/prm/PRM.h>
 #include <ompl/geometric/PathGeometric.h>
 
-#include <triple_constraint_planner/constraints/ConstrainedPlanningCommon.h>
+#include <triple_constraint_planner/base/constraints/ConstrainedPlanningCommon.h>
 #include <triple_constraint_planner/kinematics/KinematicChain.h>
 #include <ctime>
 
@@ -120,13 +120,12 @@ int main(int argc, char **argv)
     ros::NodeHandle node_handle("~");
     ros::WallDuration(1.0).sleep();
 
-    grasping_point grp;
     // execute_path("/home/jiyeong/catkin_ws/projection_path.txt", grp.planning_group);
     if (plannedPath() )
     {
         ros::Publisher display_publisher = node_handle.advertise<moveit_msgs::DisplayTrajectory>("/move_group/display_planned_path", 5, true);
         while (display_publisher.getNumSubscribers() == 0 && ros::ok())
             ros::spinOnce();
-        execute_path("/home/jiyeong/catkin_ws/projection_path.txt", grp.planning_group);
+        execute_path("/home/jiyeong/catkin_ws/projection_path.txt", "panda_arms");
     }
 }

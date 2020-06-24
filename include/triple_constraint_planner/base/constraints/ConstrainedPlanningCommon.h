@@ -8,7 +8,7 @@
 #include <ompl/geometric/SimpleSetup.h>
 #include <ompl/geometric/PathGeometric.h>
 
-#include <triple_constraint_planner/constraints/ConstraintFunction.h>
+#include <triple_constraint_planner/base/constraints/ConstraintFunction.h>
 #include <triple_constraint_planner/base/jy_ConstrainedValidStateSampler.h>
 #include <ompl/base/ConstrainedSpaceInformation.h>
 #include <ompl/base/spaces/constraint/ConstrainedStateSpace.h>
@@ -109,7 +109,7 @@ public:
         c_opt.lambda = 5.0;
         c_opt.tolerance1 = 0.002; //0.001
         c_opt.tolerance2 = 0.025; // 1degree
-        c_opt.time = 60.;
+        c_opt.time = 30.;
         c_opt.tries = 200;
         // c_opt.range = 1.5;
 
@@ -199,13 +199,13 @@ public:
             std::this_thread::sleep_for(std::chrono::seconds(3));
         int stefan_tries = 500;
         std::shared_ptr<panda_ik> panda_ik_solver = std::make_shared<panda_ik>();
-        Affine3d base_obj = grp.base_obj;
+        Isometry3d base_obj = grp.base_obj;
 
         while (--stefan_tries)
         {
-            Affine3d target_1 = base_1st.inverse() * base_obj * obj_grasp1;
-            Affine3d target_2 = base_2nd.inverse() * base_obj * obj_grasp2;
-            Affine3d target_3 = base_3rd.inverse() * base_obj * obj_grasp3;
+            Isometry3d target_1 = base_1st.inverse() * base_obj * obj_grasp1;
+            Isometry3d target_2 = base_2nd.inverse() * base_obj * obj_grasp2;
+            Isometry3d target_3 = base_3rd.inverse() * base_obj * obj_grasp3;
 
             Eigen::Map<Eigen::VectorXd> &sol = *result->as<ob::ConstrainedStateSpace::StateType>();
             int tries = 50;
@@ -229,11 +229,11 @@ public:
     bool sampleIKgoal(ob::State *result)
     {
         std::shared_ptr<panda_ik> panda_ik_solver = std::make_shared<panda_ik>();
-        Affine3d base_obj = grp.base_obj;
+        Isometry3d base_obj = grp.base_obj;
 
-        Affine3d target_1 = base_1st.inverse() * base_obj * obj_grasp1;
-        Affine3d target_2 = base_2nd.inverse() * base_obj * obj_grasp2;
-        Affine3d target_3 = base_3rd.inverse() * base_obj * obj_grasp3;
+        Isometry3d target_1 = base_1st.inverse() * base_obj * obj_grasp1;
+        Isometry3d target_2 = base_2nd.inverse() * base_obj * obj_grasp2;
+        Isometry3d target_3 = base_3rd.inverse() * base_obj * obj_grasp3;
 
         Eigen::Map<Eigen::VectorXd> &sol = *result->as<ob::ConstrainedStateSpace::StateType>();
         bool success1, success2, success3;
@@ -247,7 +247,8 @@ public:
 
         if (success1 && success2 && success3)
         {
-            return true;
+            if (csi->isValid(result))
+                return true;
         }
 
         return false;
@@ -344,7 +345,7 @@ public:
     og::SimpleSetupPtr ss;
 
     struct ConstrainedOptions c_opt;
-    Affine3d obj_grasp1, obj_grasp2, obj_grasp3, base_1st, base_2nd, base_3rd;
+    Isometry3d obj_grasp1, obj_grasp2, obj_grasp3, base_1st, base_2nd, base_3rd;
     grasping_point grp;
     std::shared_ptr<ob::SE3StateSpace> obj_space_;
 

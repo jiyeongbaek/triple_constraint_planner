@@ -32,7 +32,6 @@ catkin_package(
   CATKIN_DEPENDS
     roscpp
     moveit_core 
-    #moveit_planners_ompl
     moveit_ros_planning_interface
     moveit_simple_controller_manager
     rviz_visual_tools
@@ -58,7 +57,6 @@ include_directories(
     ${RBDL_INCLUDE_DIRS}
     ${Boost_INCLUDE_DIRS}
     ${OMPL_INCLUDE_DIRS}
-    ${moveit_resources_INCLUDE_DIRS}
 )
 
 link_directories(${Boost_LIBRARY_DIR})
@@ -95,4 +93,17 @@ target_link_libraries (${PROJECT_NAME}_testt
                        fcl
                        ${PROJECT_NAME}_lib)
 
-                      
+##################################################################################################
+
+add_executable(regrasp_planning src/regrasp_planning.cpp)      
+add_library(regrasp_planning_lib
+  src/planner/rgpRRTConnect.cpp
+  src/kinematics/panda_model_updater.cpp
+)                
+target_link_libraries (regrasp_planning      
+                      ${catkin_LIBRARIES}       
+                      ${OMPL_LIBRARIES}   
+                      ${Boost_LIBRARIES}
+                      rbdl
+                       fcl
+                       regrasp_planning_lib)

@@ -5,10 +5,11 @@
     "version": "0.2.0",
     "configurations": [
         
+
         {
             "name": "ROS: Launch",
             "request": "launch",
-            "target": "/home/jiyeong/catkin_ws/src/3_dual_constraint_planning/triple_constraint_planner/launch/demo.launch",
+            "target": "/home/jiyeong/catkin_ws/src/3_dual_constraint_planning/triple_constraint_planner/launch/regrasp.launch",
             "type": "ros"
         }
     ]

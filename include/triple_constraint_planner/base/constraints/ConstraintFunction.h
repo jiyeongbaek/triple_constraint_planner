@@ -39,12 +39,12 @@ public:
         base_2nd = grp.base_2nd;
         base_3rd = grp.base_3rd;
 
-        offset_R = Eigen::Affine3d::Identity();
+        offset_R = Eigen::Isometry3d::Identity();
         offset_R.linear() = Eigen::AngleAxisd(M_PI / 7, Eigen::Vector3d::UnitX()).toRotationMatrix();
 
         panda_arm = std::make_shared<FrankaModelUpdater>();
         /* first closed chain */
-        init_serve1 = base_1st * panda_arm->getTransform(qinit_1st) * offset_R;
+        init_serve1 = base_1st * panda_arm->getTransform(qinit_1st); // * offset_R;
         init_main1= base_3rd * panda_arm->getTransform(qinit_3rd);
         init1 = init_serve1.inverse() * init_main1;
 
@@ -93,9 +93,9 @@ public:
         // std::cout << "temp : " << temp1.transpose() << " " << temp2.transpose() << " " << temp3.transpose() << std::endl;
 
         /* first closed chain */
-        Eigen::Affine3d lt1 = base_1st * panda_arm->getTransform(x.segment<7>(0)) * offset_R;
-        Eigen::Affine3d rt1 = base_3rd * panda_arm->getTransform(x.segment<7>(14));
-        Eigen::Affine3d result1 = lt1.inverse() * rt1;
+        Eigen::Isometry3d lt1 = base_1st * panda_arm->getTransform(x.segment<7>(0));// * offset_R;
+        Eigen::Isometry3d rt1 = base_3rd * panda_arm->getTransform(x.segment<7>(14));
+        Eigen::Isometry3d result1 = lt1.inverse() * rt1;
 
         double p1 = (result1.translation() - init1.translation()).norm();
         Eigen::Quaterniond cur_q1(result1.linear());
@@ -103,9 +103,9 @@ public:
         double r1 = cur_q1.angularDistance(ori_q1);
 
         /* second closed chain */
-        Eigen::Affine3d lt2 = base_2nd * panda_arm->getTransform(x.segment<7>(7));
-        Eigen::Affine3d rt2 = base_3rd * panda_arm->getTransform(x.segment<7>(14));
-        Eigen::Affine3d result2 = lt2.inverse() * rt2;
+        Eigen::Isometry3d lt2 = base_2nd * panda_arm->getTransform(x.segment<7>(7));
+        Eigen::Isometry3d rt2 = base_3rd * panda_arm->getTransform(x.segment<7>(14));
+        Eigen::Isometry3d result2 = lt2.inverse() * rt2;
 
         double p2 = (result2.translation() - init2.translation()).norm();
         Eigen::Quaterniond cur_q2(result2.linear());
@@ -134,6 +134,7 @@ public:
     {
         Eigen::VectorXd f(getCoDimension());
         function(x, f);
+
         return f.allFinite() && f[0] <= tolerance1_ && f[1] <= tolerance2_ && f[2] <= tolerance1_ && f[3] <= tolerance2_;
     }
 
@@ -143,15 +144,15 @@ protected:
 private:
     Eigen::Matrix<double, 7, 1> q_1st, q_2nd, q_3rd;
     Eigen::Matrix<double, 7, 1> qinit_1st, qinit_2nd, qinit_3rd;
-    Eigen::Affine3d init_serve1, init_main1, init1, init_serve2, init_main2, init2;
+    Eigen::Isometry3d init_serve1, init_main1, init1, init_serve2, init_main2, init2;
 
     std::shared_ptr<FrankaModelUpdater> panda_arm;
     Eigen::Matrix<double, 4, 4> init_;
 
     int maxIterations;
 
-    Eigen::Affine3d base_1st, base_2nd, base_3rd;
-    Eigen::Affine3d offset_R;
+    Eigen::Isometry3d base_1st, base_2nd, base_3rd;
+    Eigen::Isometry3d offset_R;
 };
 
 typedef std::shared_ptr<KinematicChainConstraint> ChainConstraintPtr;
@@ -186,10 +187,10 @@ typedef std::shared_ptr<KinematicChainConstraint> ChainConstraintPtr;
 //         Eigen::VectorXd &&temp = x.segment(0, 7);
 //         Eigen::VectorXd &&temp2 = x.segment(7, 7);
 
-//         Eigen::Affine3d lt = base_1st * panda_model->getTransform(temp);
-//         Eigen::Affine3d rt = base_3rd * panda_model->getTransform(temp2);
+//         Eigen::Isometry3d lt = base_1st * panda_model->getTransform(temp);
+//         Eigen::Isometry3d rt = base_3rd * panda_model->getTransform(temp2);
 
-//         Eigen::Affine3d result = lt.inverse() * rt;
+//         Eigen::Isometry3d result = lt.inverse() * rt;
 
 //         double r;
 //         Eigen::Quaterniond cur_q(result.linear());
@@ -217,9 +218,9 @@ typedef std::shared_ptr<KinematicChainConstraint> ChainConstraintPtr;
 //         {
 //             Eigen::VectorXd &&q_temp = x;
 //             q_temp(i) = x(i) + h;
-//             Eigen::Affine3d lt_1 = base_1st * panda_model->getTransform(q_temp.segment(0, 7));
-//             Eigen::Affine3d rt_1 = base_3rd * panda_model->getTransform(q_temp.segment(7, 7));
-//             Eigen::Affine3d result_1 = lt_1.inverse() * rt_1;
+//             Eigen::Isometry3d lt_1 = base_1st * panda_model->getTransform(q_temp.segment(0, 7));
+//             Eigen::Isometry3d rt_1 = base_3rd * panda_model->getTransform(q_temp.segment(7, 7));
+//             Eigen::Isometry3d result_1 = lt_1.inverse() * rt_1;
 
 //             // d_rot = ( init_tr * result_1.linear() ).log().norm();
 
@@ -230,9 +231,9 @@ typedef std::shared_ptr<KinematicChainConstraint> ChainConstraintPtr;
 //             double g1_r = r;
 
 //             q_temp(i) = x(i) - h;
-//             Eigen::Affine3d lt_2 = base_1st * panda_model->getTransform(q_temp.segment(0, 7));
-//             Eigen::Affine3d rt_2 = base_3rd * panda_model->getTransform(q_temp.segment(7, 7));
-//             Eigen::Affine3d result_2 = lt_2.inverse() * rt_2;
+//             Eigen::Isometry3d lt_2 = base_1st * panda_model->getTransform(q_temp.segment(0, 7));
+//             Eigen::Isometry3d rt_2 = base_3rd * panda_model->getTransform(q_temp.segment(7, 7));
+//             Eigen::Isometry3d result_2 = lt_2.inverse() * rt_2;
 //             Eigen::Quaterniond cur2_q(result_2.linear());
 //             r = cur2_q.angularDistance(ori_q);
 //             d = (result_2.translation() - init.translation()).norm();
@@ -248,7 +249,7 @@ typedef std::shared_ptr<KinematicChainConstraint> ChainConstraintPtr;
 // private:
 //     Eigen::Matrix<double, 7, 1> q_1st, q_3rd;
 //     Eigen::Matrix<double, 7, 1> qinit_serve, qinit_main;
-//     Eigen::Affine3d init_serve, init_main, init, init_tr;
+//     Eigen::Isometry3d init_serve, init_main, init, init_tr;
 
 //     std::shared_ptr<FrankaModelUpdater> init_panda_model, panda_model;
 //     std::shared_ptr<FrankaModelUpdater> panda_model, init_panda_model;

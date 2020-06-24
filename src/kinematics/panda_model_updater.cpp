@@ -72,7 +72,7 @@ void FrankaModelUpdater::PandaRBDLModel()
   }
 }
 
-Affine3d FrankaModelUpdater::getTransform(const Vector7d &q)
+Isometry3d FrankaModelUpdater::getTransform(const Vector7d &q)
 {
   VectorXd q_temp_ = q;
   VectorXd qdot_temp_;
@@ -89,7 +89,7 @@ Affine3d FrankaModelUpdater::getTransform(const Vector7d &q)
 
   rotation = rotation * body_to_ee_rotation;
 
-  Affine3d transform;
+  Isometry3d transform;
   transform.linear() = rotation;
   transform.translation() = x;
 
@@ -147,9 +147,9 @@ Eigen::Vector3d getEigenVector(const KDL::Vector& v)
   return vector;
 }
 
-Eigen::Affine3d getEigenFrame(const KDL::Frame & frame)
+Eigen::Isometry3d getEigenFrame(const KDL::Frame & frame)
 {
-  Eigen::Affine3d transform;
+  Eigen::Isometry3d transform;
   transform.translation() = getEigenVector(frame.p);
   transform.linear() = getEigenRotation(frame.M);
   return transform;
@@ -176,7 +176,7 @@ KDL::Vector getKDLVector(const Eigen::Vector3d& vector)
 }
 
 
-KDL::Frame getKDLFrame(const Eigen::Affine3d & transform)
+KDL::Frame getKDLFrame(const Eigen::Isometry3d & transform)
 {
   KDL::Frame frame;
   frame.p = getKDLVector(transform.translation());
@@ -186,7 +186,7 @@ KDL::Frame getKDLFrame(const Eigen::Affine3d & transform)
 
 
 
-panda_ik::panda_ik() : tracik_solver(chain_start, chain_end, "/single_robot_description", TRAC_IK::SolveType::Manip1)
+panda_ik::panda_ik() : tracik_solver(chain_start, chain_end, "/single_robot_description")
 {
   KDL::JntArray ll, ul; //lower joint limits, upper joint limits
 
@@ -225,7 +225,7 @@ Eigen::VectorXd panda_ik::getRandomConfig()
   return length.asDiagonal() * Eigen::VectorXd::Random(7) + length + lb_;
 }
 
-bool panda_ik::solve(VectorXd start, Affine3d target, Eigen::Ref<Eigen::VectorXd> solution)
+bool panda_ik::solve(VectorXd start, Isometry3d target, Eigen::Ref<Eigen::VectorXd> solution)
 {
   KDL::JntArray nominal(chain.getNrOfJoints());
   for (uint j = 0; j < nominal.data.size(); j++)
@@ -242,12 +242,12 @@ bool panda_ik::solve(VectorXd start, Affine3d target, Eigen::Ref<Eigen::VectorXd
   return false;
 }
 
-bool panda_ik::randomSolve(Affine3d target, Eigen::Ref<Eigen::VectorXd> solution)
+bool panda_ik::randomSolve(Isometry3d target, Eigen::Ref<Eigen::VectorXd> solution)
 {
   return solve(getRandomConfig(), target, solution);
 }
 
-Eigen::Affine3d panda_ik::fk(const Eigen::Ref<const Eigen::VectorXd> &q)
+Eigen::Isometry3d panda_ik::fk(const Eigen::Ref<const Eigen::VectorXd> &q)
 {
   KDL::JntArray jarr_q;
   KDL::Frame frame;
@@ -258,7 +258,7 @@ Eigen::Affine3d panda_ik::fk(const Eigen::Ref<const Eigen::VectorXd> &q)
   return getEigenFrame(frame);
 }
 
-Eigen::Affine3d panda_ik::random_fk()
+Eigen::Isometry3d panda_ik::random_fk()
 {
   return fk(getRandomConfig());
 }

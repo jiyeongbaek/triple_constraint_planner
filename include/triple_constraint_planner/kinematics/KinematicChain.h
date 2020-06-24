@@ -110,25 +110,20 @@ public:
             std::cout << bounds.high[i] << "  ";
         std::cout << std::endl;
 
-        // type_ = ompl::base::STATE_SPACE_SO2;
-        type_ = ompl::base::STATE_SPACE_REAL_VECTOR;
+        type_ = ompl::base::STATE_SPACE_SO2;
     }
 
     void enforceBounds(ompl::base::State *state) const override
     {
-        auto *rstate = static_cast<StateType *>(state);
+        auto *statet = state->as<StateType>();
         for (unsigned int i = 0; i < dimension_; ++i)
         {
-            if (rstate->values[i] > bounds_.high[i])
-            {
-                std::cout << "enforce bounds" << std::endl;
-                rstate->values[i] = bounds_.high[i];
-            }
-            else if (rstate->values[i] < bounds_.low[i])
-            {
-                std::cout << "enforce bounds" << std::endl;
-                rstate->values[i] = bounds_.low[i];
-            }
+            double v = fmod(statet->values[i], 2.0 * boost::math::constants::pi<double>());
+            if (v < -boost::math::constants::pi<double>())
+                v += 2.0 * boost::math::constants::pi<double>();
+            else if (v >= boost::math::constants::pi<double>())
+                v -= 2.0 * boost::math::constants::pi<double>();
+            statet->values[i] = v;
         }
     }
 

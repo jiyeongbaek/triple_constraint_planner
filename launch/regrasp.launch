@@ -2,7 +2,10 @@
     <param name="robot_description" command="$(find xacro)/xacro --inorder '$(find triple_env_description)/robots/triple_env.urdf.xacro'" />
     <param name="single_robot_description" command="$(find xacro)/xacro.py '$(find franka_description)/robots/panda_arm_hand.urdf.xacro'" />
     <include file="$(find triple_moveit_config)/launch/planning_context.launch"/>
-    <node name="triple_constraint_planner" pkg="triple_constraint_planner" type="triple_constraint_planner" output="screen"/> 
+    <arg name="debug" default="false" />
+    <node name="regrasp_planning" pkg="triple_constraint_planner" type="regrasp_planning" output="screen" /> > 
+    
+    <node name="regrasp_planning" pkg="triple_constraint_planner" type="regrasp_planning" output="screen" launch-prefix="gdb run --args" if="$(arg debug)" /> > 
     
 </launch>
 

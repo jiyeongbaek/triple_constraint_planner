@@ -229,9 +229,9 @@ ompl::base::PlannerStatus ompl::geometric::newRRT::solve(const base::PlannerTerm
 //         joint[i] = s->values[i];
 //     // std::cout << s->values[i] << std::endl;
 //     std::cout << joint.transpose() << std::endl;
-//     Eigen::Affine3d left_Lgrasp = panda_arm->getTransform(joint);
+//     Eigen::Isometry3d left_Lgrasp = panda_arm->getTransform(joint);
 
-//     Eigen::Affine3d base_obj = grp.base_serve * left_Lgrasp * grp.Lgrasp_obj;
+//     Eigen::Isometry3d base_obj = grp.base_serve * left_Lgrasp * grp.Lgrasp_obj;
 
 //     Eigen::Vector3d rpy = base_obj.linear().eulerAngles(0, 1, 2);
 //     double roll = rpy[0]; // 90

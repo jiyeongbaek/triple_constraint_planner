@@ -41,15 +41,22 @@ public:
         // bounds.setLow(2, 0.8);
         // bounds.setHigh(2, 1.05);
         
-        bounds.setLow(0, 0.6);
-        bounds.setHigh(0, 1.4);
+        // bounds.setLow(0, 1.10);
+        // bounds.setHigh(0, 1.20);
+        // bounds.setLow(1, -0.3);
+        // bounds.setHigh(1, -0.09);
+        // bounds.setLow(2, 0.75);
+        // bounds.setHigh(2, 1.01);
+
+        // rotate chair
+        bounds.setLow(0, 1.0);
+        bounds.setHigh(0, 1.25);
         bounds.setLow(1, -0.5);
         bounds.setHigh(1, 0.5);
         bounds.setLow(2, 0.8);
         bounds.setHigh(2, 1.05);
         obj_space_->setBounds(bounds);
         obj_sampler_ =obj_space_->allocStateSampler();
-
         panda_ik_solver = std::make_shared<panda_ik>();        
     }
 
@@ -59,6 +66,8 @@ public:
         bool valid;
         do
         {
+            // sampler_->sampleUniform(state);
+            std::cout << "objecect sampling" << std::endl;
             ob::State *obj_state = obj_space_->allocState();
             obj_sampler_->sampleUniform(obj_state);
             sampleIKgoal(obj_state, state);
@@ -90,35 +99,36 @@ public:
     {
         auto *se3state = obj_state->as<ob::SE3StateSpace::StateType>();
         ob::State *ik_result = si_->allocState();
-        Affine3d base_obj;
+        Isometry3d base_obj;
         base_obj.translation() = Eigen::Vector3d(se3state->getX(), se3state->getY(), se3state->getZ());
-        // base_obj.linear() = Eigen::Quaterniond(se3state->rotation().w, 
-        //                                         se3state->rotation().x, 
-        //                                         se3state->rotation().y, 
-        //                                         se3state->rotation().z).toRotationMatrix();
-        base_obj.linear().setIdentity();
-        Affine3d target_1 = base_1st.inverse() * base_obj * obj_grasp1;
-        Affine3d target_2 = base_2nd.inverse() * base_obj * obj_grasp2;
-        Affine3d target_3 = base_3rd.inverse() * base_obj * obj_grasp3;
+        base_obj.linear() = Eigen::Quaterniond(se3state->rotation().w, 
+                                                se3state->rotation().x, 
+                                                se3state->rotation().y, 
+                                                se3state->rotation().z).toRotationMatrix();
+        // base_obj.linear().setIdentity();
+        Isometry3d target_1 = base_1st.inverse() * base_obj * obj_grasp1;
+        Isometry3d target_2 = base_2nd.inverse() * base_obj * obj_grasp2;
+        Isometry3d target_3 = base_3rd.inverse() * base_obj * obj_grasp3;
        
         Eigen::Map<Eigen::VectorXd> &sol = *result->as<ob::ConstrainedStateSpace::StateType>();
 
         // sol.segment<7>(14)= panda_ik_solver->getRandomConfig();
-        // Affine3d panda3_grasp3 = panda_ik_solver->fk(sol.segment<7>(14));
+        // Isometry3d panda3_grasp3 = panda_ik_solver->fk(sol.segment<7>(14));
         // if (panda3_grasp3.translation()[2] < 0.1)
         //     return false;
-        // Affine3d base_obj = base_3rd * panda3_grasp3 * grasp3_obj;
-        // Affine3d target_1 = base_1st.inverse() * base_obj * obj_grasp1;
+        // Isometry3d base_obj = base_3rd * panda3_grasp3 * grasp3_obj;
+        // Isometry3d target_1 = base_1st.inverse() * base_obj * obj_grasp1;
 
         // if (target_1.translation()[0] > 1.3)
         //     return false;
 
-        // Affine3d target_2 = base_2nd.inverse() * base_obj * obj_grasp2;
+        // Isometry3d target_2 = base_2nd.inverse() * base_obj * obj_grasp2;
         
         if (panda_ik_solver->randomSolve(target_1, sol.segment<7>(0)) && 
             panda_ik_solver->randomSolve(target_2, sol.segment<7>(7)) && 
             panda_ik_solver->randomSolve(target_3, sol.segment<7>(14)) )
         {
+            std::cout << sol.transpose() << std::endl;
             return true;
         }
         sol.setZero();
@@ -132,7 +142,7 @@ private:
     const ob::ConstraintPtr constraint_;
     Eigen::Matrix<double, 14, 1> lower_limit, upper_limit;
     grasping_point grp;
-    Affine3d obj_grasp1, obj_grasp2, obj_grasp3, base_1st, base_2nd, base_3rd, grasp3_obj;
+    Isometry3d obj_grasp1, obj_grasp2, obj_grasp3, base_1st, base_2nd, base_3rd, grasp3_obj;
     std::shared_ptr<panda_ik> panda_ik_solver;
 };
 
